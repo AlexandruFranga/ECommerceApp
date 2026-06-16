@@ -86,9 +86,6 @@ function ProductCard({ product }: { product: typeof featuredProducts[0] }) {
           </span>
         )}
         <span className="text-4xl text-muted-foreground/30">📦</span>
-        <p className="absolute bottom-2 text-[10px] text-muted-foreground">
-          add image later
-        </p>
       </div>
 
       {/* Info */}
