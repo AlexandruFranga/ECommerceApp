@@ -4,9 +4,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Zap, Eye, EyeOff } from 'lucide-react'
+import { register } from '@/api/auth'
+import { useAuthStore } from '@/store/authStore'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
+  const { setAuth } = useAuthStore()
   const [showPassword, setShowPassword] = useState(false)
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '' })
   const [error, setError] = useState('')
@@ -24,17 +27,23 @@ export default function RegisterPage() {
       return
     }
     setLoading(true)
-    // TODO: connect to API
-    setTimeout(() => {
-      setLoading(false)
+    try {
+      const data = await register(form)
+      setAuth(
+        { id: '', email: data.email, firstName: data.firstName, lastName: data.lastName, role: data.role as 'Customer' | 'Admin' },
+        data.token
+      )
       navigate('/')
-    }, 1000)
+    } catch {
+      setError('Registration failed. Email may already be in use.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm flex flex-col gap-6">
-
         <div className="flex flex-col items-center gap-2 text-center">
           <Link to="/" className="flex items-center gap-2 font-bold text-xl">
             <Zap className="h-6 w-6 text-primary" />
@@ -50,7 +59,6 @@ export default function RegisterPage() {
               {error}
             </div>
           )}
-
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="firstName">First name</Label>
@@ -73,7 +81,6 @@ export default function RegisterPage() {
               />
             </div>
           </div>
-
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -85,7 +92,6 @@ export default function RegisterPage() {
               className="bg-muted/50"
             />
           </div>
-
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="password">Password</Label>
             <div className="relative">
@@ -106,7 +112,6 @@ export default function RegisterPage() {
               </button>
             </div>
           </div>
-
           <Button
             type="submit"
             className="w-full bg-primary hover:bg-primary/90 text-white font-semibold mt-2"

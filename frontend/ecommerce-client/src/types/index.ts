@@ -13,6 +13,7 @@ export interface Product {
   imageUrl?: string;
   categoryId: number;
   category?: Category;
+  categoryName?: string;
   specifications?: Record<string, string>;
 }
 
@@ -62,7 +63,10 @@ export interface RegisterRequest {
 
 export interface AuthResponse {
   token: string;
-  user: User;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
 }
 
 export interface PaginatedResponse<T> {
