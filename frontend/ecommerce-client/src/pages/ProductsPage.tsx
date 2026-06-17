@@ -5,13 +5,9 @@ import { Input } from '@/components/ui/input'
 import { Search, Star, SlidersHorizontal } from 'lucide-react'
 import { getProducts } from '@/api/products'
 import { getCategories } from '@/api/categories'
+import { useAuthStore } from '@/store/authStore'
+import { useCartStore } from '@/store/cartStore'
 import type { Product, Category } from '@/types'
-
-const badgeColors: Record<string, string> = {
-  'Best seller': 'bg-orange-500 text-white',
-  'New': 'bg-blue-500 text-white',
-  'Sale': 'bg-red-500 text-white',
-}
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
@@ -20,6 +16,8 @@ export default function ProductsPage() {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
   const [sortBy, setSortBy] = useState('default')
   const [loading, setLoading] = useState(true)
+  const { token } = useAuthStore()
+  const { addItem } = useCartStore()
 
   useEffect(() => {
     getCategories().then(setCategories)
@@ -39,7 +37,6 @@ export default function ProductsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 flex flex-col gap-6">
-      {/* Top bar */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <h1 className="text-2xl font-bold">Products</h1>
         <div className="flex gap-2 w-full sm:w-auto">
@@ -65,7 +62,6 @@ export default function ProductsPage() {
       </div>
 
       <div className="flex gap-6">
-        {/* Sidebar */}
         <aside className="hidden md:flex flex-col gap-4 w-48 shrink-0">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <SlidersHorizontal className="h-4 w-4" />
@@ -98,7 +94,6 @@ export default function ProductsPage() {
           </div>
         </aside>
 
-        {/* Grid */}
         <div className="flex-1 flex flex-col gap-4">
           <p className="text-sm text-muted-foreground">{products.length} products found</p>
           {loading ? (
@@ -137,7 +132,11 @@ export default function ProductsPage() {
                     <Button
                       size="sm"
                       className="w-full bg-primary hover:bg-primary/90 text-white font-semibold text-xs mt-1"
-                      onClick={(e) => e.preventDefault()}
+                      onClick={async (e) => {
+                        e.preventDefault()
+                        if (!token) { window.location.href = '/login'; return }
+                        await addItem(p.id, 1)
+                      }}
                     >
                       Add to cart
                     </Button>

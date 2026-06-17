@@ -92,7 +92,6 @@ export default function HomePage() {
                   className="mt-1 w-full bg-primary hover:bg-primary/90 text-white font-semibold text-xs"
                   onClick={async (e) => {
                     e.preventDefault()
-                    e.stopPropagation()
                     if (!token) { window.location.href = '/login'; return }
                     await addItem(p.id, 1)
                   }}

@@ -7,6 +7,9 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import CartPage from './pages/CartPage'
 import AdminPage from './pages/AdminPage'
+import CheckoutPage from './pages/CheckoutPage'
+import OrdersPage from './pages/OrdersPage'
+
 
 
 
@@ -22,6 +25,8 @@ function App() {
           <Route path="register" element={<RegisterPage />} />
           <Route path="cart" element={<CartPage />} />
           <Route path="admin" element={<AdminPage />} />
+          <Route path="checkout" element={<CheckoutPage />} />
+          <Route path="orders" element={<OrdersPage />} />
 
         </Route>
       </Routes>
