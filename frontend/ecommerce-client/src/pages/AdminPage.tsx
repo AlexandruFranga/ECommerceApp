@@ -1,27 +1,16 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
+import { getCategories } from '@/api/categories'
+import {
+  adminGetProducts, adminCreateProduct,
+  adminDeleteProduct, adminGetOrders, adminUpdateOrderStatus
+} from '@/api/admin'
+import type { Product, Order, Category } from '@/types'
 import {
   Package, ShoppingCart, Users, TrendingUp,
   Plus, Pencil, Trash2, Search, X, Check
 } from 'lucide-react'
-
-const mockProducts = [
-  { id: 1, name: 'Arduino Uno R3', price: 42.99, stock: 15, category: 'Microcontrollers' },
-  { id: 2, name: 'Raspberry Pi 4 Model B 4GB', price: 189.99, stock: 8, category: 'Dev Boards' },
-  { id: 3, name: 'Resistor Kit 600pcs', price: 18.50, stock: 42, category: 'Resistors' },
-  { id: 4, name: 'ESP32 Development Board', price: 34.99, stock: 23, category: 'Microcontrollers' },
-  { id: 5, name: 'LED Assortment Kit 350pcs', price: 22.00, stock: 31, category: 'LED & Lighting' },
-]
-
-const mockOrders = [
-  { id: 1001, customer: 'Ion Popescu', total: 227.98, status: 'Pending', date: '2026-06-15', items: 2 },
-  { id: 1002, customer: 'Maria Ionescu', total: 18.50, status: 'Processing', date: '2026-06-15', items: 1 },
-  { id: 1003, customer: 'Andrei Constantin', total: 224.98, status: 'Shipped', date: '2026-06-14', items: 3 },
-  { id: 1004, customer: 'Elena Dumitrescu', total: 67.00, status: 'Delivered', date: '2026-06-13', items: 1 },
-  { id: 1005, customer: 'Mihai Popa', total: 43.49, status: 'Cancelled', date: '2026-06-12', items: 2 },
-]
 
 const statusColors: Record<string, string> = {
   Pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
@@ -36,38 +25,57 @@ const tabs = ['Overview', 'Products', 'Orders']
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('Overview')
   const [search, setSearch] = useState('')
-  const [products, setProducts] = useState(mockProducts)
-  const [orders, setOrders] = useState(mockOrders)
+  const [products, setProducts] = useState<Product[]>([])
+  const [orders, setOrders] = useState<Order[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loading, setLoading] = useState(true)
   const [showAddProduct, setShowAddProduct] = useState(false)
-  const [newProduct, setNewProduct] = useState({ name: '', price: '', stock: '', category: '' })
+  const [newProduct, setNewProduct] = useState({
+    name: '', description: '', price: '', stockQuantity: '', categoryId: ''
+  })
+
+  useEffect(() => {
+    Promise.all([
+      adminGetProducts(),
+      adminGetOrders(),
+      getCategories()
+    ]).then(([prods, ords, cats]) => {
+      setProducts(prods)
+      setOrders(ords)
+      setCategories(cats)
+    }).finally(() => setLoading(false))
+  }, [])
 
   const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase())
   )
 
   const filteredOrders = orders.filter(o =>
-    o.customer.toLowerCase().includes(search.toLowerCase()) ||
+    o.shippingAddress.toLowerCase().includes(search.toLowerCase()) ||
     o.id.toString().includes(search)
   )
 
-  const handleDeleteProduct = (id: number) => {
+  const handleDeleteProduct = async (id: number) => {
+    await adminDeleteProduct(id)
     setProducts(products.filter(p => p.id !== id))
   }
 
-  const handleAddProduct = () => {
-    if (!newProduct.name || !newProduct.price) return
-    setProducts([...products, {
-      id: products.length + 1,
+  const handleAddProduct = async () => {
+    if (!newProduct.name || !newProduct.price || !newProduct.categoryId) return
+    const created = await adminCreateProduct({
       name: newProduct.name,
+      description: newProduct.description,
       price: parseFloat(newProduct.price),
-      stock: parseInt(newProduct.stock) || 0,
-      category: newProduct.category || 'Uncategorized',
-    }])
-    setNewProduct({ name: '', price: '', stock: '', category: '' })
+      stockQuantity: parseInt(newProduct.stockQuantity) || 0,
+      categoryId: parseInt(newProduct.categoryId),
+    })
+    setProducts([...products, created])
+    setNewProduct({ name: '', description: '', price: '', stockQuantity: '', categoryId: '' })
     setShowAddProduct(false)
   }
 
-  const handleStatusChange = (orderId: number, status: string) => {
+  const handleStatusChange = async (orderId: number, status: string) => {
+    await adminUpdateOrderStatus(orderId, status)
     setOrders(orders.map(o => o.id === orderId ? { ...o, status } : o))
   }
 
@@ -75,10 +83,17 @@ export default function AdminPage() {
     .filter(o => o.status !== 'Cancelled')
     .reduce((sum, o) => sum + o.total, 0)
 
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-20 flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 flex flex-col gap-6">
 
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Admin Panel</h1>
@@ -108,10 +123,10 @@ export default function AdminPage() {
         <div className="flex flex-col gap-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: 'Total Revenue', value: `${totalRevenue.toFixed(2)} Lei`, icon: <TrendingUp className="h-5 w-5 text-primary" />, sub: 'From 4 orders' },
-              { label: 'Total Orders', value: mockOrders.length, icon: <ShoppingCart className="h-5 w-5 text-primary" />, sub: '1 pending' },
-              { label: 'Products', value: products.length, icon: <Package className="h-5 w-5 text-primary" />, sub: '2 low stock' },
-              { label: 'Customers', value: 5, icon: <Users className="h-5 w-5 text-primary" />, sub: 'Registered users' },
+              { label: 'Total Revenue', value: `${totalRevenue.toFixed(2)} Lei`, icon: <TrendingUp className="h-5 w-5 text-primary" />, sub: `From ${orders.filter(o => o.status !== 'Cancelled').length} orders` },
+              { label: 'Total Orders', value: orders.length, icon: <ShoppingCart className="h-5 w-5 text-primary" />, sub: `${orders.filter(o => o.status === 'Pending').length} pending` },
+              { label: 'Products', value: products.length, icon: <Package className="h-5 w-5 text-primary" />, sub: `${products.filter(p => p.stockQuantity < 10).length} low stock` },
+              { label: 'Categories', value: categories.length, icon: <Users className="h-5 w-5 text-primary" />, sub: 'Product categories' },
             ].map(stat => (
               <div key={stat.label} className="bg-card border border-border rounded-xl p-5 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
@@ -126,7 +141,6 @@ export default function AdminPage() {
             ))}
           </div>
 
-          {/* Recent orders */}
           <div className="bg-card border border-border rounded-xl overflow-hidden">
             <div className="px-5 py-4 border-b border-border">
               <h2 className="font-semibold">Recent Orders</h2>
@@ -135,16 +149,18 @@ export default function AdminPage() {
               <thead>
                 <tr className="border-b border-border text-muted-foreground">
                   <th className="text-left px-5 py-3 font-medium">Order</th>
-                  <th className="text-left px-5 py-3 font-medium">Customer</th>
+                  <th className="text-left px-5 py-3 font-medium">Date</th>
                   <th className="text-left px-5 py-3 font-medium">Total</th>
                   <th className="text-left px-5 py-3 font-medium">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {mockOrders.slice(0, 5).map(order => (
+                {orders.slice(0, 5).map(order => (
                   <tr key={order.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                     <td className="px-5 py-3 font-medium">#{order.id}</td>
-                    <td className="px-5 py-3 text-muted-foreground">{order.customer}</td>
+                    <td className="px-5 py-3 text-muted-foreground">
+                      {new Date(order.createdAt).toLocaleDateString('en-GB')}
+                    </td>
                     <td className="px-5 py-3 font-medium">{order.total.toFixed(2)} Lei</td>
                     <td className="px-5 py-3">
                       <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${statusColors[order.status]}`}>
@@ -180,7 +196,6 @@ export default function AdminPage() {
             </Button>
           </div>
 
-          {/* Add product form */}
           {showAddProduct && (
             <div className="bg-card border border-primary/30 rounded-xl p-5 flex flex-col gap-4">
               <div className="flex items-center justify-between">
@@ -190,10 +205,42 @@ export default function AdminPage() {
                 </button>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <Input placeholder="Product name" value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} className="bg-muted/50 col-span-2" />
-                <Input placeholder="Price (Lei)" type="number" value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: e.target.value })} className="bg-muted/50" />
-                <Input placeholder="Stock" type="number" value={newProduct.stock} onChange={e => setNewProduct({ ...newProduct, stock: e.target.value })} className="bg-muted/50" />
-                <Input placeholder="Category" value={newProduct.category} onChange={e => setNewProduct({ ...newProduct, category: e.target.value })} className="bg-muted/50 col-span-2" />
+                <Input
+                  placeholder="Product name"
+                  value={newProduct.name}
+                  onChange={e => setNewProduct({ ...newProduct, name: e.target.value })}
+                  className="bg-muted/50 col-span-2"
+                />
+                <Input
+                  placeholder="Description"
+                  value={newProduct.description}
+                  onChange={e => setNewProduct({ ...newProduct, description: e.target.value })}
+                  className="bg-muted/50 col-span-2"
+                />
+                <Input
+                  placeholder="Price (Lei)"
+                  type="number"
+                  value={newProduct.price}
+                  onChange={e => setNewProduct({ ...newProduct, price: e.target.value })}
+                  className="bg-muted/50"
+                />
+                <Input
+                  placeholder="Stock"
+                  type="number"
+                  value={newProduct.stockQuantity}
+                  onChange={e => setNewProduct({ ...newProduct, stockQuantity: e.target.value })}
+                  className="bg-muted/50"
+                />
+                <select
+                  value={newProduct.categoryId}
+                  onChange={e => setNewProduct({ ...newProduct, categoryId: e.target.value })}
+                  className="col-span-2 text-sm border border-border rounded-lg px-3 py-2 bg-muted/50 text-foreground"
+                >
+                  <option value="">Select category</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
               </div>
               <div className="flex gap-2">
                 <Button onClick={handleAddProduct} className="bg-primary hover:bg-primary/90 text-white gap-2">
@@ -219,11 +266,11 @@ export default function AdminPage() {
                 {filteredProducts.map(p => (
                   <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                     <td className="px-5 py-3 font-medium">{p.name}</td>
-                    <td className="px-5 py-3 text-muted-foreground">{p.category}</td>
+                    <td className="px-5 py-3 text-muted-foreground">{p.categoryName}</td>
                     <td className="px-5 py-3">{p.price.toFixed(2)} Lei</td>
                     <td className="px-5 py-3">
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${p.stock < 10 ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
-                        {p.stock} units
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${p.stockQuantity < 10 ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
+                        {p.stockQuantity} units
                       </span>
                     </td>
                     <td className="px-5 py-3">
@@ -265,7 +312,6 @@ export default function AdminPage() {
               <thead>
                 <tr className="border-b border-border text-muted-foreground">
                   <th className="text-left px-5 py-3 font-medium">Order</th>
-                  <th className="text-left px-5 py-3 font-medium">Customer</th>
                   <th className="text-left px-5 py-3 font-medium">Date</th>
                   <th className="text-left px-5 py-3 font-medium">Items</th>
                   <th className="text-left px-5 py-3 font-medium">Total</th>
@@ -276,9 +322,10 @@ export default function AdminPage() {
                 {filteredOrders.map(order => (
                   <tr key={order.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                     <td className="px-5 py-3 font-medium">#{order.id}</td>
-                    <td className="px-5 py-3 text-muted-foreground">{order.customer}</td>
-                    <td className="px-5 py-3 text-muted-foreground">{order.date}</td>
-                    <td className="px-5 py-3">{order.items}</td>
+                    <td className="px-5 py-3 text-muted-foreground">
+                      {new Date(order.createdAt).toLocaleDateString('en-GB')}
+                    </td>
+                    <td className="px-5 py-3">{order.items.length}</td>
                     <td className="px-5 py-3 font-medium">{order.total.toFixed(2)} Lei</td>
                     <td className="px-5 py-3">
                       <select
