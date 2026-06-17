@@ -1,17 +1,21 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Star, ArrowLeft, ShoppingCart, Package, Zap, Shield } from 'lucide-react'
 import { getProduct } from '@/api/products'
+import { useAuthStore } from '@/store/authStore'
+import { useCartStore } from '@/store/cartStore'
 import type { Product } from '@/types'
 
 export default function ProductDetailPage() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
+  const { token } = useAuthStore()
+  const { addItem } = useCartStore()
 
   useEffect(() => {
     if (!id) return
@@ -22,7 +26,13 @@ export default function ProductDetailPage() {
       .finally(() => setLoading(false))
   }, [id])
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
+    if (!token) {
+      navigate('/login')
+      return
+    }
+    if (!product) return
+    await addItem(product.id, quantity)
     setAdded(true)
     setTimeout(() => setAdded(false), 2000)
   }

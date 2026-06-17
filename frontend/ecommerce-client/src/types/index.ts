@@ -28,7 +28,9 @@ export interface User {
 export interface CartItem {
   id: number;
   productId: number;
-  product: Product;
+  productName: string;
+  productPrice: number;
+  productImageUrl?: string;
   quantity: number;
 }
 

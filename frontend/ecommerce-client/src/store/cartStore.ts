@@ -1,24 +1,41 @@
-import { create } from 'zustand';
-import type { CartItem } from '../types';
+import { create } from 'zustand'
+import type { CartItem } from '../types'
+import { getCart, addToCart, removeFromCart, clearCart } from '@/api/cart'
 
 interface CartState {
-  items: CartItem[];
-  setItems: (items: CartItem[]) => void;
-  addItem: (item: CartItem) => void;
-  removeItem: (id: number) => void;
-  clearCart: () => void;
-  total: () => number;
+  items: CartItem[]
+  loading: boolean
+  fetchCart: () => Promise<void>
+  addItem: (productId: number, quantity?: number) => Promise<void>
+  removeItem: (id: number) => Promise<void>
+  clearCart: () => Promise<void>
+  total: () => number
 }
 
 export const useCartStore = create<CartState>((set, get) => ({
   items: [],
-  setItems: (items) => set({ items }),
-  addItem: (item) => set((state) => ({ items: [...state.items, item] })),
-  removeItem: (id) => set((state) => ({
-    items: state.items.filter((i) => i.id !== id),
-  })),
-  clearCart: () => set({ items: [] }),
+  loading: false,
+  fetchCart: async () => {
+    try {
+      const items = await getCart()
+      set({ items })
+    } catch {
+      set({ items: [] })
+    }
+  },
+  addItem: async (productId, quantity = 1) => {
+    await addToCart(productId, quantity)
+    await get().fetchCart()
+  },
+  removeItem: async (id) => {
+    await removeFromCart(id)
+    await get().fetchCart()
+  },
+  clearCart: async () => {
+    await clearCart()
+    set({ items: [] })
+  },
   total: () => get().items.reduce(
     (sum, item) => sum + item.product.price * item.quantity, 0
   ),
-}));
+}))
