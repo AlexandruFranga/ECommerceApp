@@ -70,6 +70,14 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+// Seed data
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+    await SeedData.SeedAsync(context, userManager);
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
