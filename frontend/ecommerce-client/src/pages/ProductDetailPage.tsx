@@ -1,34 +1,39 @@
 import { useParams, Link } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Star, ArrowLeft, ShoppingCart, Package, Zap, Shield } from 'lucide-react'
-
-const mockProducts = [
-  { id: 1, name: 'Arduino Uno R3', price: 42.99, oldPrice: 54.99, rating: 4.8, reviews: 124, category: 'Microcontrollers', badge: 'Best seller' },
-  { id: 2, name: 'Raspberry Pi 4 Model B 4GB', price: 189.99, oldPrice: null, rating: 4.9, reviews: 89, category: 'Dev Boards', badge: 'New' },
-  { id: 3, name: 'Resistor Kit 600pcs', price: 18.50, oldPrice: 24.00, rating: 4.6, reviews: 203, category: 'Resistors', badge: 'Sale' },
-  { id: 4, name: 'ESP32 Development Board', price: 34.99, oldPrice: null, rating: 4.7, reviews: 67, category: 'Microcontrollers', badge: null },
-  { id: 5, name: 'LED Assortment Kit 350pcs', price: 22.00, oldPrice: 28.00, rating: 4.5, reviews: 155, category: 'LED & Lighting', badge: 'Sale' },
-  { id: 6, name: 'DHT22 Temperature Sensor', price: 12.99, oldPrice: null, rating: 4.4, reviews: 98, category: 'Sensors', badge: null },
-  { id: 7, name: 'Capacitor Kit 500pcs', price: 16.50, oldPrice: null, rating: 4.3, reviews: 71, category: 'Capacitors', badge: null },
-  { id: 8, name: 'NPN Transistor BC547 (50pcs)', price: 8.99, oldPrice: 11.00, rating: 4.6, reviews: 180, category: 'Transistors', badge: 'Sale' },
-  { id: 9, name: 'Jumper Wire Kit 120pcs', price: 9.50, oldPrice: null, rating: 4.7, reviews: 312, category: 'Cables & Connectors', badge: 'Best seller' },
-  { id: 10, name: 'STM32 Nucleo Board', price: 67.00, oldPrice: null, rating: 4.8, reviews: 44, category: 'Dev Boards', badge: 'New' },
-]
-
-const badgeColors: Record<string, string> = {
-  'Best seller': 'bg-orange-500 text-white',
-  'New': 'bg-blue-500 text-white',
-  'Sale': 'bg-red-500 text-white',
-}
+import { getProduct } from '@/api/products'
+import type { Product } from '@/types'
 
 export default function ProductDetailPage() {
   const { id } = useParams()
+  const [product, setProduct] = useState<Product | null>(null)
+  const [loading, setLoading] = useState(true)
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
 
-  const product = mockProducts.find((p) => p.id === Number(id))
+  useEffect(() => {
+    if (!id) return
+    setLoading(true)
+    getProduct(Number(id))
+      .then(setProduct)
+      .catch(() => setProduct(null))
+      .finally(() => setLoading(false))
+  }, [id])
+
+  const handleAddToCart = () => {
+    setAdded(true)
+    setTimeout(() => setAdded(false), 2000)
+  }
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-20 flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    )
+  }
 
   if (!product) {
     return (
@@ -39,11 +44,6 @@ export default function ProductDetailPage() {
         </Link>
       </div>
     )
-  }
-
-  const handleAddToCart = () => {
-    setAdded(true)
-    setTimeout(() => setAdded(false), 2000)
   }
 
   return (
@@ -63,51 +63,34 @@ export default function ProductDetailPage() {
 
         {/* Image */}
         <div className="relative bg-muted rounded-2xl flex items-center justify-center h-80 md:h-96">
-          {product.badge && (
-            <span className={`absolute top-4 left-4 text-xs font-semibold px-3 py-1 rounded-full ${badgeColors[product.badge]}`}>
-              {product.badge}
-            </span>
-          )}
           <span className="text-8xl text-muted-foreground/20">📦</span>
         </div>
 
         {/* Info */}
         <div className="flex flex-col gap-5">
           <div className="flex flex-col gap-2">
-            <p className="text-sm text-primary font-medium">{product.category}</p>
+            <p className="text-sm text-primary font-medium">{product.categoryName}</p>
             <h1 className="text-2xl font-bold leading-tight">{product.name}</h1>
-
-            {/* Rating */}
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1">
                 {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`h-4 w-4 ${i < Math.floor(product.rating) ? 'fill-primary text-primary' : 'text-muted-foreground'}`}
-                  />
+                  <Star key={i} className={`h-4 w-4 ${i < 4 ? 'fill-primary text-primary' : 'text-muted-foreground'}`} />
                 ))}
               </div>
-              <span className="text-sm font-medium">{product.rating}</span>
-              <span className="text-sm text-muted-foreground">({product.reviews} reviews)</span>
+              <span className="text-sm text-muted-foreground">(4.5)</span>
             </div>
           </div>
 
           {/* Price */}
           <div className="flex items-baseline gap-3">
             <span className="text-3xl font-bold">{product.price.toFixed(2)} Lei</span>
-            {product.oldPrice && (
-              <span className="text-lg text-muted-foreground line-through">{product.oldPrice.toFixed(2)} Lei</span>
-            )}
-            {product.oldPrice && (
-              <Badge className="bg-red-500 text-white text-xs">
-                -{Math.round((1 - product.price / product.oldPrice) * 100)}%
-              </Badge>
-            )}
           </div>
 
           {/* Stock */}
-          <p className={`text-sm font-medium ${product.stock > 10 ? 'text-green-500' : 'text-orange-500'}`}>
-            {product.stock > 10 ? `✓ In stock (${product.stock} available)` : `⚠ Only ${product.stock} left`}
+          <p className={`text-sm font-medium ${product.stockQuantity > 10 ? 'text-green-500' : 'text-orange-500'}`}>
+            {product.stockQuantity > 10
+              ? `✓ In stock (${product.stockQuantity} available)`
+              : `⚠ Only ${product.stockQuantity} left`}
           </p>
 
           {/* Quantity + Add to cart */}
@@ -116,16 +99,12 @@ export default function ProductDetailPage() {
               <button
                 className="px-3 py-2 hover:bg-muted transition-colors text-lg font-medium"
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
-              >
-                −
-              </button>
+              >−</button>
               <span className="px-4 py-2 text-sm font-medium border-x border-border">{quantity}</span>
               <button
                 className="px-3 py-2 hover:bg-muted transition-colors text-lg font-medium"
-                onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-              >
-                +
-              </button>
+                onClick={() => setQuantity(Math.min(product.stockQuantity, quantity + 1))}
+              >+</button>
             </div>
             <Button
               size="lg"
@@ -153,27 +132,10 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* Description + Specs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="flex flex-col gap-3">
-          <h2 className="text-lg font-semibold">Description</h2>
-          <p className="text-sm text-muted-foreground leading-relaxed">{product.description}</p>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <h2 className="text-lg font-semibold">Specifications</h2>
-          <div className="border border-border rounded-xl overflow-hidden">
-            {Object.entries(product.specs).map(([key, value], i) => (
-              <div
-                key={key}
-                className={`flex justify-between px-4 py-2.5 text-sm ${i % 2 === 0 ? 'bg-muted/40' : 'bg-background'}`}
-              >
-                <span className="text-muted-foreground">{key}</span>
-                <span className="font-medium">{value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* Description */}
+      <div className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold">Description</h2>
+        <p className="text-sm text-muted-foreground leading-relaxed">{product.description}</p>
       </div>
 
       {/* Back button */}
@@ -185,7 +147,6 @@ export default function ProductDetailPage() {
           </Button>
         </Link>
       </div>
-
     </div>
   )
 }
