@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Search, Star, SlidersHorizontal } from 'lucide-react'
+import { Star, SlidersHorizontal } from 'lucide-react'
 import { getProducts } from '@/api/products'
 import { getCategories } from '@/api/categories'
 import { useAuthStore } from '@/store/authStore'
@@ -18,10 +17,18 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true)
   const { token } = useAuthStore()
   const { addItem } = useCartStore()
+  const [searchParams] = useSearchParams()
 
   useEffect(() => {
     getCategories().then(setCategories)
   }, [])
+
+  useEffect(() => {
+    const urlSearch = searchParams.get('search') || ''
+    const urlCategory = searchParams.get('categoryId')
+    setSearch(urlSearch)
+    setSelectedCategory(urlCategory ? Number(urlCategory) : null)
+  }, [searchParams])
 
   useEffect(() => {
     setLoading(true)
@@ -37,28 +44,19 @@ export default function ProductsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 flex flex-col gap-6">
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <h1 className="text-2xl font-bold">Products</h1>
-        <div className="flex gap-2 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search..."
-              className="pl-9 bg-muted/50"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <select
-            className="text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-          >
-            <option value="default">Sort: Default</option>
-            <option value="price-asc">Price: Low to High</option>
-            <option value="price-desc">Price: High to Low</option>
-          </select>
-        </div>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">
+          {search ? `Results for "${search}"` : 'Products'}
+        </h1>
+        <select
+          className="text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground"
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+        >
+          <option value="default">Sort: Default</option>
+          <option value="price-asc">Price: Low to High</option>
+          <option value="price-desc">Price: High to Low</option>
+        </select>
       </div>
 
       <div className="flex gap-6">
@@ -134,6 +132,7 @@ export default function ProductsPage() {
                       className="w-full bg-primary hover:bg-primary/90 text-white font-semibold text-xs mt-1"
                       onClick={async (e) => {
                         e.preventDefault()
+                        e.stopPropagation()
                         if (!token) { window.location.href = '/login'; return }
                         await addItem(p.id, 1)
                       }}

@@ -19,7 +19,10 @@ export default function CartPage() {
   const total = subtotal + shipping
 
   const handleQuantityChange = async (id: number, quantity: number) => {
-    if (quantity < 1) return
+    if (quantity < 1) {
+      await removeItem(id)
+      return
+    }
     await updateCartItem(id, quantity)
     await fetchCart()
   }
@@ -88,9 +91,39 @@ export default function CartPage() {
                     >
                       <Minus className="h-3 w-3" />
                     </button>
-                    <span className="px-3 py-1 text-sm font-medium border-x border-border">
-                      {item.quantity}
-                    </span>
+                    <input
+                      type="number"
+                      min="1"
+                      defaultValue={item.quantity}
+                      key={item.quantity}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const val = parseInt((e.target as HTMLInputElement).value)
+                          if (!isNaN(val) && val > 0) {
+                            handleQuantityChange(item.id, val)
+                            ;(e.target as HTMLInputElement).blur()
+                          }
+                        }
+                        if (
+                          !/[0-9]/.test(e.key) &&
+                          e.key !== 'Backspace' &&
+                          e.key !== 'Delete' &&
+                          e.key !== 'ArrowLeft' &&
+                          e.key !== 'ArrowRight' &&
+                          e.key !== 'Tab' &&
+                          e.key !== 'Enter'
+                        ) {
+                          e.preventDefault()
+                        }
+                      }}
+                      onBlur={(e) => {
+                        const val = parseInt(e.target.value)
+                        if (!isNaN(val) && val > 0 && val !== item.quantity) {
+                          handleQuantityChange(item.id, val)
+                        }
+                      }}
+                      className="w-12 text-center text-sm font-medium border-x border-border bg-background py-1 focus:outline-none"
+                    />
                     <button
                       className="px-2 py-1 hover:bg-muted transition-colors"
                       onClick={() => handleQuantityChange(item.id, item.quantity + 1)}

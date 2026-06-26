@@ -15,6 +15,7 @@ export default function Header() {
     window.matchMedia('(prefers-color-scheme: dark)').matches
   )
   const [showMenu, setShowMenu] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark)
@@ -27,27 +28,34 @@ export default function Header() {
     setShowMenu(false)
   }
 
+  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchQuery.trim()) {
+      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`)
+      setSearchQuery('')
+    }
+  }
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center gap-4">
-        {/* Logo */}
         <Link to="/" className="flex items-center gap-2 font-bold text-lg tracking-tight shrink-0">
           <Zap className="h-5 w-5 text-primary" />
           <span className="hidden sm:block">ECommerceApp</span>
         </Link>
 
-        {/* Search */}
         <div className="flex-1 flex items-center max-w-xl mx-auto">
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search products..."
               className="pl-9 bg-muted/50 border-border focus:bg-background w-full"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearch}
             />
           </div>
         </div>
 
-        {/* Actions */}
         <div className="flex items-center gap-1 shrink-0">
           <Button
             variant="ghost"

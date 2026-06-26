@@ -31,7 +31,7 @@ public class ProductsController : ControllerBase
             .AsNoTracking();
 
         if (!string.IsNullOrEmpty(search))
-            query = query.Where(p => p.Name.Contains(search));
+            query = query.Where(p => p.Name.ToLower().Contains(search.ToLower()));
 
         if (categoryId.HasValue)
             query = query.Where(p => p.CategoryId == categoryId);

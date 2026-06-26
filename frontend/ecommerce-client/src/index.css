@@ -31,3 +31,13 @@ body {
   color: var(--color-foreground);
   transition: background-color 0.3s, color 0.3s;
 }
+
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
+}

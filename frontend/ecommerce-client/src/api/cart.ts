@@ -11,7 +11,9 @@ export const addToCart = async (productId: number, quantity: number = 1) => {
 }
 
 export const updateCartItem = async (id: number, quantity: number) => {
-  await api.put(`/cart/${id}`, quantity)
+  await api.put(`/cart/${id}`, quantity, {
+    headers: { 'Content-Type': 'application/json' }
+  })
 }
 
 export const removeFromCart = async (id: number) => {
